@@ -48,22 +48,71 @@ This project builds a **DIY hardware device** that measures temperature in compu
 
 ## 🔧 Hardware Components
 
-### Required Parts
+### Option 1: ESP32 (Recommended for Beginners)
 
 | Component | Approx. Cost | Purpose |
 |-----------|--------------|---------|
-| ESP32 DevKit | $5-10 | Microcontroller with WiFi |
+| ESP32 DevKit v1 | $5-10 | Microcontroller with WiFi |
 | DHT22/SHT31 Sensor | $5-15 | Temperature & humidity |
 | Breadboard + Wires | $5 | Prototyping |
 | USB Cable | $3 | Power & programming |
 | 3D Printed Case | $10 | Enclosure (optional) |
 
+**Wiring (ESP32):**
+```
+ESP32          DHT22/SHT31
+──────         ───────────
+3.3V  ──────── VCC
+GND   ──────── GND
+GPIO4 ──────── DATA (with 10kΩ pull-up)
+```
+
+### Option 2: Raspberry Pi (Recommended for Advanced Users)
+
+| Component | Approx. Cost | Purpose |
+|-----------|--------------|---------|
+| Raspberry Pi 4/5 (4GB) | $35-75 | Main controller with WiFi/Ethernet |
+| DHT22 Sensor | $5-10 | Temperature & humidity |
+| BMP280/BME280 Sensor | $5-15 | Pressure + altitude (optional) |
+| MicroSD Card (32GB+) | $10 | OS and data storage |
+| Breadboard + Wires | $5 | Prototyping |
+| Power Supply (5V 3A) | $10 | Official Pi adapter |
+
+**Wiring (Raspberry Pi):**
+```
+Raspberry Pi    DHT22 Sensor
+──────────      ─────────────
+Pin 1 (3.3V) ── VCC
+Pin 6 (GND)  ── GND
+Pin 7 (GPIO4)── DATA (with 10kΩ pull-up)
+
+Raspberry Pi    BMP280 (I2C)
+──────────      ─────────────
+Pin 1 (3.3V) ── VCC
+Pin 6 (GND)  ── GND
+Pin 3 (GPIO2)── SDA (I2C Data)
+Pin 5 (GPIO3)── SCL (I2C Clock)
+```
+
+**Raspberry Pi Advantages:**
+- Full Linux OS for complex processing
+- Multiple I2C/SPI sensors simultaneously
+- Built-in WiFi/Ethernet connectivity
+- GPIO header for easy prototyping
+- Support for OLED displays and local logging
+- Can run Flask/Streamlit dashboard locally
+
 ### Sensor Specifications
 
-- **Temperature Range**: -40°C to 80°C
-- **Accuracy**: ±0.5°C (DHT22) / ±0.3°C (SHT31)
-- **Update Interval**: Configurable (10s - 5min)
-- **Power**: USB or battery (ESP32 low-power modes)
+| Sensor | Temperature Range | Accuracy | Humidity | Best For |
+|--------|-------------------|----------|----------|----------|
+| DHT22 | -40°C to 80°C | ±0.5°C | 0-100% RH | Budget-friendly all-rounder |
+| SHT31 | -40°C to 125°C | ±0.3°C | 0-100% RH | High precision |
+| DS18B20 | -55°C to 125°C | ±0.5°C | N/A | Waterproof probes, 1-Wire |
+| BME280 | -40°C to 85°C | ±1.0°C | 0-100% RH | All-in-one (temp+humidity+pressure) |
+
+**Update Interval**: Configurable (10s - 5min)
+**Power**: USB or battery (ESP32/Pi low-power modes available)
 
 ## 📁 Project Structure
 
@@ -80,14 +129,53 @@ Cloud-Connected-Hardware-IoT-Monitor/
 │   │   └── __init__.py
 │   └── utils/                # Utility functions
 │       └── __init__.py
-├── hardware/                 # Hardware firmware code
+├── hardware/
 │   ├── esp32_sensor/         # ESP32 Arduino/PlatformIO code
-│   └── docs/                 # Wiring diagrams
+│   │   ├── src/
+│   │   │   ├── main.cpp
+│   │   │   └── azure_client.cpp
+│   │   └── platformio.ini
+│   ├── raspberry_pi/         # Raspberry Pi Python code
+│   │   ├── sensor_reader.py
+│   │   ├── azure_sender.py
+│   │   └── requirements.txt
+│   └── docs/                 # Wiring diagrams and hardware guides
+│       ├── esp32_wiring.png
+│       └── raspberry_pi_wiring.png
 ├── azure/                    # Azure ARM templates
 │   ├── iot-hub.json
 │   └── time-series.json
 └── requirements.txt          # Python dependencies
 ```
+
+## 🆚 ESP32 vs Raspberry Pi: Which to Choose?
+
+| Feature | ESP32 | Raspberry Pi |
+|---------|-------|--------------|
+| **Cost** | $5-10 | $35-75 |
+| **Power Consumption** | Very low (deep sleep available) | Higher (1-5W) |
+| **Processing Power** | Limited (240MHz dual-core) | High (1.5GHz+ quad-core) |
+| **Memory** | 520KB SRAM | 1-8GB RAM |
+| **OS** | None (bare metal) | Full Linux |
+| **Connectivity** | WiFi + Bluetooth | WiFi + Ethernet + Bluetooth |
+| **GPIO** | 34 pins | 40 pins |
+| **Best For** | Simple, battery-powered sensors | Complex processing, local dashboards |
+| **Programming** | C++/Arduino or MicroPython | Python, Node.js, any Linux language |
+| **Multiple Sensors** | Limited | Many (I2C/SPI bus support) |
+| **Local Display** | OLED (small) | HDMI monitor, touchscreen |
+
+**Choose ESP32 if:**
+- You want low power consumption
+- Budget is tight
+- Simple temperature monitoring only
+- Battery-powered deployment needed
+
+**Choose Raspberry Pi if:**
+- You need complex data processing
+- Want to run dashboard locally
+- Multiple sensors simultaneously
+- Future expansion planned
+- Educational purposes (learn Linux/networking)
 
 ## 🚀 Development Roadmap
 
@@ -130,26 +218,88 @@ Cloud-Connected-Hardware-IoT-Monitor/
 
 ### Prerequisites
 
-**Hardware:**
+**Hardware (Choose one):**
+
+**Option A - ESP32:**
 - ESP32 DevKit v1
 - DHT22 or SHT31 temperature sensor
 - Jumper wires and breadboard
 - USB cable for programming
 
+**Option B - Raspberry Pi:**
+- Raspberry Pi 4/5 (4GB+ RAM)
+- DHT22 or BME280 sensor
+- MicroSD card (32GB+)
+- Power supply (5V 3A)
+- Breadboard and jumper wires
+
 **Software:**
 - Python 3.10+
-- Arduino IDE or PlatformIO
+- Arduino IDE/PlatformIO (ESP32) or Raspberry Pi OS (Pi)
 - Azure account (free tier available)
 - Azure CLI (optional)
 
 ### Hardware Assembly
 
+**ESP32:**
 ```
 ESP32          DHT22/SHT31
 ──────         ───────────
 3.3V  ──────── VCC
 GND   ──────── GND
 GPIO4 ──────── DATA (with 10kΩ pull-up)
+```
+
+**Raspberry Pi:**
+```
+Raspberry Pi    DHT22 Sensor
+──────────      ─────────────
+Pin 1 (3.3V) ── VCC
+Pin 6 (GND)  ── GND
+Pin 7 (GPIO4)── DATA (with 10kΩ pull-up)
+```
+
+### Raspberry Pi Setup
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Enable I2C and 1-Wire interfaces
+sudo raspi-config
+# Navigate to: Interface Options → I2C → Enable
+# Navigate to: Interface Options → 1-Wire → Enable
+
+# Reboot
+sudo reboot
+
+# Install Python dependencies
+sudo apt install python3-pip python3-venv libgpiod2 -y
+
+# Create project directory
+mkdir ~/iot-monitor && cd ~/iot-monitor
+python3 -m venv venv
+source venv/bin/activate
+
+# Install libraries
+pip install adafruit-circuitpython-dht
+pip install azure-iot-device
+pip install streamlit
+```
+
+### ESP32 Setup
+
+```bash
+# Install PlatformIO
+pip install platformio
+
+# Create project
+mkdir esp32_sensor && cd esp32_sensor
+pio init --board esp32dev
+
+# Install libraries
+pio lib install "DHT sensor library"
+pio lib install "Azure IoT Hub Arduino"
 ```
 
 ### Installation
@@ -229,8 +379,48 @@ The dashboard will open at `http://localhost:8501`
 | Warning | 28-35°C | 🟠 Orange | Monitor closely |
 | Critical | > 35°C | 🔴 Red | Take action immediately |
 
+## 💡 Raspberry Pi Quick Start Code
+
+### sensor_reader.py
+```python
+import time
+import board
+import adafruit_dht
+from azure.iot.device import IoTHubDeviceClient, Message
+
+# Initialize sensor
+dht = adafruit_dht.DHT22(board.D4)
+
+# Azure IoT Hub connection string
+CONNECTION_STRING = "HostName=YourHub.azure-devices.net;DeviceId=YourDevice;SharedAccessKey=YourKey"
+
+def read_temperature():
+    try:
+        temp = dht.temperature
+        humidity = dht.humidity
+        return {"temperature": temp, "humidity": humidity}
+    except RuntimeError as e:
+        print(f"Sensor error: {e}")
+        return None
+
+def send_to_azure(data):
+    client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+    message = Message(str(data))
+    client.send_message(message)
+    print(f"Sent to Azure: {data}")
+    client.shutdown()
+
+if __name__ == "__main__":
+    while True:
+        data = read_temperature()
+        if data:
+            send_to_azure(data)
+        time.sleep(60)  # Send every 60 seconds
+```
+
 ## 🔧 Development Commands
 
+### Dashboard Commands
 ```bash
 # Run dashboard
 streamlit run app.py
@@ -238,6 +428,13 @@ streamlit run app.py
 # Run with debug logging
 LOG_LEVEL=DEBUG streamlit run app.py
 
+# Install new dependencies
+pip install package-name
+pip freeze > requirements.txt
+```
+
+### ESP32 Commands
+```bash
 # Flash ESP32 (with PlatformIO)
 cd hardware/esp32_sensor
 pio run --target upload
@@ -245,18 +442,50 @@ pio run --target upload
 # Monitor serial output
 pio device monitor
 
-# Install new dependencies
-pip install package-name
-pip freeze > requirements.txt
+# Build without uploading
+pio run
+```
+
+### Raspberry Pi Commands
+```bash
+# SSH into Raspberry Pi
+ssh pi@<pi-ip-address>
+
+# Run sensor reader
+cd ~/iot-monitor
+source venv/bin/activate
+python sensor_reader.py
+
+# Run as systemd service
+sudo systemctl enable iot-monitor
+sudo systemctl start iot-monitor
+
+# View logs
+sudo journalctl -u iot-monitor -f
+
+# Enable I2C/SPI interfaces
+sudo raspi-config
+# Interface Options → I2C → Enable
+# Interface Options → 1-Wire → Enable
+
+# Check connected I2C devices
+sudo i2cdetect -y 1
 ```
 
 ## 📝 Implementation Notes
 
 ### Hardware Module (`hardware/`)
-- `esp32_sensor/` - Arduino/PlatformIO firmware
+
+**ESP32 (`esp32_sensor/`):**
 - `src/main.cpp` - Main sensor loop
 - `src/azure_client.cpp` - Azure IoT Hub connection
-- `docs/wiring.png` - Connection diagram
+- `platformio.ini` - PlatformIO configuration
+
+**Raspberry Pi (`raspberry_pi/`):**
+- `sensor_reader.py` - DHT22/BME280 sensor reading
+- `azure_sender.py` - Azure IoT Hub MQTT publisher
+- `local_logger.py` - CSV/file logging
+- `requirements.txt` - Pi-specific dependencies
 
 ### Core Module (`monitor/core/`)
 - `azure_client.py` - Azure IoT Hub SDK wrapper
