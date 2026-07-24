@@ -1,0 +1,28 @@
+# Cloud-Connected Hardware IoT Monitor - Dependencies
+
+# Core dependencies
+streamlit>=1.28.0
+requests>=2.31.0
+
+# Azure IoT Hub (optional - for cloud connectivity)
+azure-iot-device>=2.12.0
+
+# Hardware sensor libraries (install based on your sensor)
+# adafruit-circuitpython-dht>=4.1.0      # For DHT22/DHT11 sensors
+# adafruit-circuitpython-sht31d>=3.0.0   # For SHT31 sensors
+# adafruit-circuitpython-bme280>=3.2.0   # For BME280 sensors
+
+# Raspberry Pi specific (install on Pi only)
+# RPi.GPIO>=0.7.1                        # GPIO access
+# gpiozero>=2.0                          # GPIO library
+
+# Development and testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme>=1.3.0
