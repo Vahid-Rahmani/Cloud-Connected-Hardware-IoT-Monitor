@@ -1,182 +1,279 @@
-"""Streamlit dashboard for Cloud-Connected-Hardware-IoT-Monitor."""
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
-import json
-import os
-from datetime import datetime, timezone
+from collector import collect_status
 
-import streamlit as st
 
-from monitor.config import (
-    AZURE_FILE_SHARE_NAME,
-    AZURE_IOT_HUB_CONNECTION_STRING,
-    MONITOR_SCHEMA,
-    POLL_INTERVAL_SECONDS,
-    TEMPERATURE_CRITICAL,
-    TEMPERATURE_WARNING,
-    get_temperature_status,
-)
-from monitor.utils.formatters import (
-    format_humidity,
-    format_location,
-    format_status_emoji,
-    format_temperature,
-    format_timestamp,
+app = FastAPI(
+    title="Windows Infrastructure Monitor"
 )
 
 
-def load_reading() -> dict | None:
-    """Load the latest reading from file."""
-    data_file = os.path.join(os.path.dirname(__file__), "monitor", "latest_reading.json")
-    if not os.path.exists(data_file):
-        return None
-    try:
-        with open(data_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        st.error(f"Error reading data file: {e}")
-        return None
+@app.get("/api/devices")
+def api_devices():
+    return collect_status()
 
 
-def get_sample_reading() -> dict:
-    """Get sample data for preview."""
-    return {
-        "device_id": "ESP32-Sensor-001",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "temperature": 26.5,
-        "humidity": 52.3,
-        "location": {
-            "room": "Server Room A",
-            "rack_id": "Rack-01",
-            "zone": "Zone-1",
-        },
-        "device_info": {
-            "type": "esp32",
-            "sensor_type": "dht22",
-            "firmware_version": "1.0.0",
-        },
-        "status": "warning",
-    }
+@app.get("/", response_class=HTMLResponse)
+def dashboard():
+    devices = collect_status()
 
-
-# Page configuration
-st.set_page_config(
-    page_title="IoT Temperature Monitor",
-    page_icon="🌡️",
-    layout="wide",
-)
-
-st.title("🌡️ Cloud-Connected Hardware IoT Monitor")
-st.markdown("*Real-time temperature monitoring for server rooms*")
-
-# --- Sidebar: Connection Info -----------------------------------------------
-with st.sidebar:
-    st.header("⚙️ Connection")
-
-    iot_hub_status = "🟢 Connected" if AZURE_IOT_HUB_CONNECTION_STRING else "🔴 Not Configured"
-    st.text_input("Azure IoT Hub", value=iot_hub_status, disabled=True)
-    st.text_input("File Share", value=AZURE_FILE_SHARE_NAME or "(not set)", disabled=True)
-    st.number_input("Poll Interval (s)", value=POLL_INTERVAL_SECONDS, disabled=True)
-
-    st.divider()
-    st.header("📊 Thresholds")
-    st.metric("Warning", f"{TEMPERATURE_WARNING}°C")
-    st.metric("Critical", f"{TEMPERATURE_CRITICAL}°C")
-
-# --- Load Data -------------------------------------------------------------
-reading = load_reading()
-
-if reading is None:
-    st.info(
-        "No monitoring data found yet.  \n"
-        "Connect a hardware sensor or start the simulator to populate the dashboard."
-    )
-    st.subheader("📱 Sample Data (Preview)")
-    reading = get_sample_reading()
-    st.caption("Showing simulated data — connect a real sensor for live metrics.")
-
-# --- Main Dashboard --------------------------------------------------------
-
-# Status banner
-status = reading.get("status", "ok")
-temperature = reading.get("temperature", 0)
-
-if status == "critical":
-    st.error(f"🔴 **CRITICAL ALERT** - Temperature {temperature:.1f}°C exceeds {TEMPERATURE_CRITICAL}°C threshold!")
-elif status == "warning":
-    st.warning(f"🟠 **WARNING** - Temperature {temperature:.1f}°C exceeds {TEMPERATURE_WARNING}°C threshold!")
-else:
-    st.success("🟢 All systems operating normally")
-
-# KPI Cards
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    status_label, status_color = get_temperature_status(temperature)
-    st.metric(
-        "Temperature",
-        format_temperature(temperature),
-        delta=status_label.upper(),
-        delta_color="inverse" if status_label != "ok" else "off",
+    online_count = sum(
+        1 for device in devices
+        if device["online"]
     )
 
-with col2:
-    humidity = reading.get("humidity")
-    st.metric("Humidity", format_humidity(humidity))
+    total_count = len(devices)
 
-with col3:
-    location = reading.get("location", {})
-    st.metric("Location", location.get("room", "Unknown"))
+    rows = ""
 
-with col4:
-    device_info = reading.get("device_info", {})
-    st.metric("Device", device_info.get("type", "Unknown").upper())
+    for device in devices:
+        status = (
+            "🟢 ONLINE"
+            if device["online"]
+            else "🔴 OFFLINE"
+        )
 
-# Temperature Gauge
-st.subheader("🌡️ Temperature Reading")
+        cpu = (
+            device["cpu"]
+            if device["cpu"] is not None
+            else "-"
+        )
 
-# Create a visual gauge using progress bar
-temp_min = -10.0
-temp_max = 50.0
-temp_range = temp_max - temp_min
-temp_normalized = (temperature - temp_min) / temp_range
+        ram = (
+            device["ram"]
+            if device["ram"] is not None
+            else "-"
+        )
 
-col_gauge1, col_gauge2 = st.columns([2, 1])
+        disk = (
+            device["disk"]
+            if device["disk"] is not None
+            else "-"
+        )
 
-with col_gauge1:
-    st.progress(min(max(temp_normalized, 0.0), 1.0))
-    st.caption(f"Range: {temp_min}°C to {temp_max}°C")
+        uptime = (
+            device["uptime"]
+            if device["uptime"] is not None
+            else "-"
+        )
 
-with col_gauge2:
-    st.markdown(f"### {format_temperature(temperature)}")
-    status_emoji = "🟢" if status == "ok" else "🟠" if status == "warning" else "🔴"
-    st.markdown(f"{status_emoji} Status: **{status.upper()}**")
+        rows += f"""
+        <tr>
+            <td>{device["name"]}</td>
+            <td>{device["type"]}</td>
+            <td>{device["ip"]}</td>
+            <td>{status}</td>
+            <td>{cpu}%</td>
+            <td>{ram}%</td>
+            <td>{disk}%</td>
+            <td>{uptime} h</td>
+        </tr>
+        """
 
-# Detailed Info
-col_info1, col_info2 = st.columns(2)
+    html = f"""
+    <!DOCTYPE html>
 
-with col_info1:
-    st.subheader("📍 Location Details")
-    st.json(location)
+    <html lang="en">
 
-with col_info2:
-    st.subheader("🔧 Device Information")
-    st.json(device_info)
+    <head>
 
-# Tags and Metadata
-st.subheader("🏷️ Metadata")
-tags = reading.get("tags", {})
-if tags:
-    st.json(tags)
+        <meta charset="UTF-8">
 
-# Timestamp
-ts = reading.get("timestamp", "")
-if ts:
-    st.caption(f"Last reading: {format_timestamp(ts)}")
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
 
-# Schema Reference
-with st.expander("📋 JSON Schema Reference"):
-    st.json(MONITOR_SCHEMA)
+        <meta
+            http-equiv="refresh"
+            content="30"
+        >
 
-# Footer
-st.divider()
-st.caption("Cloud-Connected Hardware IoT Monitor | Real-time Server Room Temperature Monitoring")
+        <title>
+            Windows Infrastructure Monitor
+        </title>
+
+        <style>
+
+            * {{
+                box-sizing: border-box;
+            }}
+
+            body {{
+                margin: 0;
+                padding: 40px;
+                font-family:
+                    Arial,
+                    Helvetica,
+                    sans-serif;
+                background: #0f172a;
+                color: #f8fafc;
+            }}
+
+            .container {{
+                max-width: 1400px;
+                margin: auto;
+            }}
+
+            h1 {{
+                margin-bottom: 5px;
+            }}
+
+            .subtitle {{
+                color: #94a3b8;
+                margin-bottom: 30px;
+            }}
+
+            .summary-grid {{
+                display: grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(200px, 1fr)
+                    );
+                gap: 20px;
+                margin-bottom: 30px;
+            }}
+
+            .card {{
+                background: #1e293b;
+                border-radius: 12px;
+                padding: 20px;
+            }}
+
+            .card-title {{
+                color: #94a3b8;
+                font-size: 14px;
+                margin-bottom: 10px;
+            }}
+
+            .card-value {{
+                font-size: 28px;
+                font-weight: bold;
+            }}
+
+            .table-container {{
+                overflow-x: auto;
+                background: #1e293b;
+                border-radius: 12px;
+            }}
+
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+
+            th {{
+                text-align: left;
+                padding: 16px;
+                background: #334155;
+                color: #f8fafc;
+            }}
+
+            td {{
+                padding: 16px;
+                border-bottom:
+                    1px solid #334155;
+            }}
+
+            tr:hover {{
+                background: #263449;
+            }}
+
+            .footer {{
+                margin-top: 20px;
+                color: #64748b;
+                font-size: 13px;
+            }}
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <div class="container">
+
+            <h1>
+                Windows Infrastructure Monitor
+            </h1>
+
+            <div class="subtitle">
+                Domain: kurs.intern
+            </div>
+
+            <div class="summary-grid">
+
+                <div class="card">
+                    <div class="card-title">
+                        Total Devices
+                    </div>
+
+                    <div class="card-value">
+                        {total_count}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        Online Devices
+                    </div>
+
+                    <div class="card-value">
+                        {online_count}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        Offline Devices
+                    </div>
+
+                    <div class="card-value">
+                        {total_count - online_count}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Device</th>
+                            <th>Role</th>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                            <th>CPU</th>
+                            <th>RAM</th>
+                            <th>Disk</th>
+                            <th>Uptime</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+                        {rows}
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="footer">
+                Auto-discovered from Active Directory.
+                Refresh interval: 30 seconds.
+            </div>
+
+        </div>
+
+    </body>
+
+    </html>
+    """
+
+    return html
