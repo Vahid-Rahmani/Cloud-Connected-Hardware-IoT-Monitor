@@ -1,83 +1,94 @@
 # Cloud-Connected Hardware & AI Monitoring
 
-A Raspberry Pi and ESP32 monitoring project that connects physical devices, cloud telemetry and practical operations dashboards.
+> A Raspberry Pi–focused monitoring project that is being developed toward edge telemetry, device health checks, and practical cloud-connected operations.
 
-This is Vahid Rahmani's Raspberry Pi project. The repository combines two connected tracks:
+<p align="center">
+  <a href="https://github.com/Vahid-Rahmani/Cloud-Connected-Hardware-IoT-Monitor"><img src="https://img.shields.io/badge/status-foundation%20in%20progress-2563eb" alt="Foundation in progress"></a>
+  <a href="https://www.raspberrypi.com/"><img src="https://img.shields.io/badge/target-Raspberry%20Pi-C51A4A" alt="Raspberry Pi"></a>
+  <a href="https://azure.microsoft.com/products/iot-hub"><img src="https://img.shields.io/badge/cloud-Azure%20IoT%20direction-0078D4" alt="Azure IoT direction"></a>
+</p>
 
-1. **Environmental IoT monitoring** - temperature and humidity telemetry from ESP32/Raspberry Pi devices through MQTT or HTTPS into Azure IoT Hub and a Streamlit dashboard.
-2. **AI-assisted system monitoring** - a planned edge-monitoring layer for Raspberry Pi health, performance metrics, baseline learning, anomaly detection and actionable incident explanations.
+## Project direction
 
-## Environmental IoT monitoring
+This repository is the dedicated Raspberry Pi / hardware monitoring track. Its long-term goal is to collect environmental and system telemetry at the edge, validate it locally, send selected data to a cloud service, and present useful operational context through a lightweight dashboard.
 
-- Temperature and humidity sensing for server rooms or lab environments
-- ESP32 and Raspberry Pi hardware options
-- DHT22, SHT31, DS18B20 and BME280 sensor support planning
-- MQTT/HTTPS telemetry
-- Azure IoT Hub connectivity
-- Streamlit visualisation, history and threshold-based alerts
-- Multi-zone monitoring roadmap
+The current codebase is a small FastAPI monitoring foundation shared with the Windows infrastructure lab. The Raspberry Pi sensor, MQTT/HTTPS telemetry, Azure IoT Hub, SQLite history, and anomaly-detection layers are clearly marked as roadmap work until their implementation is added to the repository.
 
-## AI-assisted Raspberry Pi monitoring
+## Target architecture
 
-The next development track extends the same Raspberry Pi project to monitor the device itself:
+```mermaid
+flowchart LR
+    S[Environmental sensors] --> E[Edge collector]
+    R[Raspberry Pi health metrics] --> E
+    E --> V[Validation and normalisation]
+    V --> L[Local history]
+    V --> T[MQTT / HTTPS telemetry]
+    T --> H[Azure IoT Hub]
+    L --> D[Local FastAPI dashboard]
+    H --> A[Cloud analytics and alerts]
+    A --> X[Optional anomaly explanation]
+```
 
-- CPU, memory, disk, temperature and uptime metrics
-- Network reachability, latency and interface health
-- Process and service checks
-- Local SQLite history
-- Baseline learning and lightweight anomaly detection
-- Evidence-based alert severity
-- Optional AI-assisted explanations of detected incidents
-- FastAPI health endpoints and a lightweight local dashboard
+## Current implementation
 
-The AI layer is designed as an explanation and prioritisation aid. Core monitoring remains measurable, local and useful without a paid AI service.
+- FastAPI application with a `/api/devices` endpoint.
+- Browser dashboard served by `app.py`.
+- Collector structure for discovery, reachability, and host health metrics.
+- Timeout-aware concurrent collection.
+- Explicit roadmap for Raspberry Pi sensor and cloud telemetry work.
 
-## Architecture
+## Planned hardware and telemetry
 
-~~~text
-Sensors / Raspberry Pi system metrics
-              ↓
-     Edge collector and validation
-              ↓
-   MQTT or HTTPS / local SQLite history
-              ↓
-Azure IoT Hub telemetry + local monitoring APIs
-              ↓
-Streamlit dashboard + anomaly detection
-              ↓
-Optional AI incident explanation + alerts
-~~~
+| Platform / component | Intended role | Status |
+| --- | --- | --- |
+| Raspberry Pi 4/5 | Linux edge collector and local dashboard | Planned |
+| ESP32 | Low-power sensor node | Planned |
+| DHT22 / BME280 / DS18B20 / SHT31 | Environmental measurements | Planned |
+| MQTT or HTTPS | Telemetry transport | Planned |
+| Azure IoT Hub | Device-to-cloud ingestion | Planned |
+| SQLite | Local history and offline resilience | Planned |
 
-## Hardware options
+## Local foundation setup
 
-| Platform | Best fit |
-|---|---|
-| ESP32 | Low-cost sensor telemetry and low-power deployments |
-| Raspberry Pi 4/5 | Linux-based collection, local processing, dashboards and system monitoring |
+The current foundation runs on Python and exposes a local FastAPI dashboard:
 
-## Planned stack
+```bash
+git clone https://github.com/Vahid-Rahmani/Cloud-Connected-Hardware-IoT-Monitor.git
+cd Cloud-Connected-Hardware-IoT-Monitor
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m uvicorn app:app --reload
+```
 
-Python · C++ / MicroPython · Raspberry Pi OS · MQTT · Azure IoT Hub · Streamlit · FastAPI · SQLite · lightweight anomaly detection
+Open <http://127.0.0.1:8000>. Before using the collector in a lab, review the controller address and the PowerShell credential-file requirement in `collector.py`.
+
+## Security model for the next stage
+
+- Keep device credentials and cloud keys outside Git.
+- Use per-device identity and least-privilege access in Azure IoT Hub.
+- Validate and bound telemetry before forwarding it.
+- Keep local monitoring useful when the cloud connection is unavailable.
+- Treat AI explanations as optional context; measurements and alert rules remain the source of truth.
 
 ## Roadmap
 
-- [x] Establish the hardware and telemetry project foundation
-- [x] Define the Azure IoT and dashboard direction
-- [ ] Complete ESP32/Raspberry Pi sensor telemetry
-- [ ] Add local Raspberry Pi system metrics
-- [ ] Add SQLite history and health endpoints
-- [ ] Implement baseline learning and anomaly detection
-- [ ] Add the first local monitoring dashboard
+- [x] Establish a dedicated hardware-monitoring repository
+- [x] Add the FastAPI monitoring foundation
+- [ ] Add Raspberry Pi OS collector for CPU, memory, disk, temperature, uptime and interfaces
+- [ ] Add sensor adapters and a documented wiring guide
+- [ ] Add local SQLite history and offline buffering
+- [ ] Add secure Azure IoT Hub telemetry
+- [ ] Add dashboard history, thresholds and alert delivery
+- [ ] Add lightweight anomaly scoring with evidence
 - [ ] Add optional AI incident explanations
-- [ ] Document service installation, security and deployment
 
-## Scope boundary
+## Related projects
 
-This repository is intentionally the single Raspberry Pi project. It is separate from the Windows Server and Active Directory work in [Automated Hybrid Network Monitoring Dashboard](https://github.com/Vahid-Rahmani/Automated-Hybrid-Network-Monitoring-Dashboard).
-
-## Author
-
-Designed and developed by [Vahid Rahmani](https://github.com/Vahid-Rahmani).
+- [Automated Hybrid Network & Monitoring Dashboard](https://github.com/Vahid-Rahmani/Automated-Hybrid-Network-Monitoring-Dashboard) — Windows/Active Directory monitoring track.
+- [Azure AI Specialist](https://github.com/Vahid-Rahmani/Azure-AI-Specialist-Project-Plan) — Azure knowledge and evaluation foundation.
+- [Vahid Rahmani portfolio](https://vahid-portfolio-three.vercel.app/)
 
 ## License
 
