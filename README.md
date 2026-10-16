@@ -1,4 +1,4 @@
-# Cloud-Connected Hardware Monitor
+> **Superseded:** this branch targets Pico 2 W and is not for the user's Raspberry Pi 2 Model B Rev 1.1. Use [hardware/pi2b-i2c-bringup](https://github.com/Vahid-Rahmani/Cloud-Connected-Hardware-IoT-Monitor/tree/hardware/pi2b-i2c-bringup) instead.\n\n# Cloud-Connected Hardware Monitor
 
 A hardware-first monitoring project based on a **Raspberry Pi Pico 2 W** and four sensors:
 
