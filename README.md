@@ -1,6 +1,6 @@
 # Cloud-Connected Hardware Monitor
 
-A hardware-first monitoring project based on a **Raspberry Pi Pico 2 W** and four sensors:
+A hardware-first monitoring project for a **Raspberry Pi 2 Model B Rev 1.1** and four sensors:
 
 | Component | What it measures |
 | --- | --- |
@@ -11,17 +11,19 @@ A hardware-first monitoring project based on a **Raspberry Pi Pico 2 W** and fou
 
 ## Current status
 
-The first milestone is **hardware bring-up**. The firmware in `hardware/pico2w/main.py` scans the shared I²C bus and reports which expected sensor addresses respond. It does not yet read measurements or send data over Wi-Fi.
+The project runs on Raspberry Pi OS and uses normal Python 3. The first milestone is **I²C bus bring-up**: `hardware/raspberry-pi-2/scan_i2c.py` checks which expected sensor addresses respond. It does not yet read measurements or send data over Wi-Fi.
 
-The repository previously had a Windows Active Directory monitor in its root. That code is preserved under `legacy/windows-ad-monitor/`; it is not the Pico firmware or the hardware data collector.
+The previous Windows Active Directory prototype is preserved under `legacy/windows-ad-monitor/` and is not part of the hardware data path.
+
+Raspberry Pi 2 uses a 32-bit processor family; Raspberry Pi OS provides a 32-bit image for Raspberry Pi 2. Use the OS already installed on the board for the first test, and check its release before adding sensor libraries.
 
 ## Bring-up
 
-1. Install the MicroPython firmware for Raspberry Pi Pico 2 W using the [Raspberry Pi MicroPython guide](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html).
-2. Connect the sensors to one I²C bus. The starter uses GP2 for SDA and GP3 for SCL.
-3. Check the voltage requirements and pin labels on each breakout board. Pico GPIO is 3.3 V logic; do not connect a 5 V signal to a Pico GPIO pin.
-4. Copy `hardware/pico2w/main.py` to the Pico as `main.py`, then run it from Thonny or the MicroPython REPL.
-5. Confirm that the four expected devices appear before adding sensor drivers.
+1. Enable I²C in Raspberry Pi OS.
+2. Connect the sensor breakouts to GPIO2/SDA1, GPIO3/SCL1, and common GND. Check the voltage rating of each breakout before powering it.
+3. Install `i2c-tools`.
+4. Run `sudo python3 hardware/raspberry-pi-2/scan_i2c.py`.
+5. Confirm all four devices appear before installing or writing sensor drivers.
 
 Expected default 7-bit addresses:
 
